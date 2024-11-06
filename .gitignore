@@ -1,0 +1,39 @@
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Makefile
+cmake_install.cmake
+CMakeUserPresets.json
+CMakePresets.json
+
+# Ignora tutte le directory di build
+cmake-build-*/
+
+# CLion specific
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Debug/Release directories
+/build/
+*/build/
+*/Debug/
+*/Release/
+
+# User-specific files
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Other generated files
+*.log
+*.out
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
