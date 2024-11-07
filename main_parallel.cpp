@@ -42,9 +42,12 @@ void renderCircles(const std::vector<Circle>& circles, int width, int height, in
     // Misura del tempo per il ciclo parallelo
     double render_start_time = omp_get_wtime();
 
+    int numThreads = 0;
+
     // Disegnare i cerchi sull'immagine
     #pragma omp parallel for
     for (int i = 0; i < height; ++i) {
+        numThreads = omp_get_num_threads();
         for (int j = 0; j < width; ++j) {
             for (const auto& circle : sortedCircles) {
                 if (isPointInCircle(j, i, circle)) {
@@ -70,7 +73,7 @@ void renderCircles(const std::vector<Circle>& circles, int width, int height, in
 
     double render_end_time = omp_get_wtime();
     double render_duration = render_end_time - render_start_time;
-    std::cout << "Tempo di esecuzione del rendering con " << omp_get_num_threads() << " thread: " << render_duration << " secondi." << std::endl;
+    std::cout << "Tempo di esecuzione del rendering con " << numThreads << " thread: " << render_duration << " secondi." << std::endl;
 
     // Scrive i dati dell'immagine nel file PPM
     for (int i = 0; i < height; ++i) {
@@ -115,11 +118,11 @@ std::vector<Circle> generateRandomCircles(const int numCircles, const int width,
 
 int main() {
     // Dimensioni dell'immagine
-    int width = 1000;
-    int height = 1000;
+    int width = 200;
+    int height = 200;
 
     // Numero di cerchi da generare
-    int numCircles = 2000;  // Puoi modificare questo numero per testare diversi casi
+    int numCircles = 10000;  // Puoi modificare questo numero per testare diversi casi
 
     // Generazione dei cerchi casuali
     auto circles = generateRandomCircles(numCircles, width, height);
@@ -136,7 +139,7 @@ int main() {
 
         double end_time = omp_get_wtime();
         double duration = end_time - start_time;
-        std::cout << "Tempo totale di esecuzione con " << numThreads << " thread (inclusa la scrittura su file): " << duration << " secondi." << std::endl;
+        //std::cout << "Tempo totale di esecuzione con " << numThreads << " thread (inclusa la scrittura su file): " << duration << " secondi." << std::endl;
     }
 
     return 0;
