@@ -119,21 +119,21 @@ std::vector<Circle> generateRandomCircles(const int numCircles, const int width,
 
 int main() {
     // Dimensioni dell'immagine
-    int width = 1000;
-    int height = 1000;
+    int width = 2000;
+    int height = 2000;
 
     // Numero di cerchi da generare
-    int numCircles = 10;  // Puoi modificare questo numero per testare diversi casi
+    int numCircles = 1000;  // Puoi modificare questo numero per testare diversi casi
 
     // Generazione dei cerchi casuali
-    //auto circles = generateRandomCircles(numCircles, width, height);
+    auto circles = generateRandomCircles(numCircles, width, height);
 
     // Creazione dei 3 cerchi non completamente sovrapposti
-    std::vector<Circle> circles = {
-        {300, 200,3 , 100, 255, 0, 0, 100},  // Cerchio rosso con trasparenza
-        {350, 200, 2, 100, 0, 255, 0, 100},  // Cerchio verde con trasparenza
-        {400, 200, 1, 100, 0, 0, 255, 100}   // Cerchio blu con trasparenza
-    };
+    //std::vector<Circle> circles = {
+      //  {300, 200,3 , 100, 255, 0, 0, 100},  // Cerchio rosso con trasparenza
+        //{350, 200, 2, 100, 0, 255, 0, 100},  // Cerchio verde con trasparenza
+        //{400, 200, 1, 100, 0, 0, 255, 100}   // Cerchio blu con trasparenza
+    //};
 
 
 
