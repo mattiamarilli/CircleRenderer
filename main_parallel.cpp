@@ -45,10 +45,11 @@ void renderCircles(const std::vector<Circle>& circles, int width, int height, in
     int numThreads = 0;
 
     // Disegnare i cerchi sull'immagine
-    #pragma omp parallel for
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < height; ++i) {
         numThreads = omp_get_num_threads();
         for (int j = 0; j < width; ++j) {
+            //Questo loop viene eseguito in modo sequenziale all'interno di ogni thread garantedo l'ordine dei cerchi i quanto sono stati ordinati precedentemente
             for (const auto& circle : sortedCircles) {
                 if (isPointInCircle(j, i, circle)) {
                     // Gestione della trasparenza: modifichiamo il colore del pixel in base alla trasparenza
@@ -118,17 +119,26 @@ std::vector<Circle> generateRandomCircles(const int numCircles, const int width,
 
 int main() {
     // Dimensioni dell'immagine
-    int width = 200;
-    int height = 200;
+    int width = 1000;
+    int height = 1000;
 
     // Numero di cerchi da generare
-    int numCircles = 10000;  // Puoi modificare questo numero per testare diversi casi
+    int numCircles = 10;  // Puoi modificare questo numero per testare diversi casi
 
     // Generazione dei cerchi casuali
-    auto circles = generateRandomCircles(numCircles, width, height);
+    //auto circles = generateRandomCircles(numCircles, width, height);
+
+    // Creazione dei 3 cerchi non completamente sovrapposti
+    std::vector<Circle> circles = {
+        {300, 200,3 , 100, 255, 0, 0, 100},  // Cerchio rosso con trasparenza
+        {350, 200, 2, 100, 0, 255, 0, 100},  // Cerchio verde con trasparenza
+        {400, 200, 1, 100, 0, 0, 255, 100}   // Cerchio blu con trasparenza
+    };
+
+
 
     // Esperimento: variare il numero di thread e misurare il tempo di esecuzione
-    for (int numThreads = 1; numThreads <= 32; numThreads *= 2) {  // Variazione del numero di thread (1, 2, 4, 8)
+    for (int numThreads = 1; numThreads <= 16; numThreads *= 2) {  // Variazione del numero di thread (1, 2, 4, 8)
         omp_set_num_threads(numThreads);  // Imposta il numero di thread per OpenMP
 
         // Misura del tempo di esecuzione
