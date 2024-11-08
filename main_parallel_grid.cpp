@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <random>
 #include <omp.h>
+#include <string>
 
 struct Circle {
     float x, y, z;  // Coordinate 3D
@@ -25,11 +26,9 @@ bool isPointInCircle(const float px, const float py, const Circle& circle) {
 
 // Funzione per disegnare i cerchi su un'immagine (rendering)
 void renderCircles(const std::vector<Circle>& circles, std::vector<std::vector<std::vector<int>>>& image, int width, int height) {
-    // Ordinamento dei cerchi per la profondità (Z)
     std::vector<Circle> sortedCircles = circles;
     std::sort(sortedCircles.begin(), sortedCircles.end(), compareByZ);
 
-    // Creazione di una griglia per la partizione spaziale
     const int gridSize = 100;
     std::vector<std::vector<std::vector<Circle>>> grid((height + gridSize - 1) / gridSize, std::vector<std::vector<Circle>>((width + gridSize - 1) / gridSize));
 
@@ -48,7 +47,7 @@ void renderCircles(const std::vector<Circle>& circles, std::vector<std::vector<s
     #pragma omp parallel for collapse(2)
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
-            int r = 255, g = 255, b = 255;  // Colore di sfondo bianco
+            int r = 255, g = 255, b = 255;
             int gridX = j / gridSize;
             int gridY = i / gridSize;
             for (const auto& circle : grid[gridY][gridX]) {
@@ -67,13 +66,11 @@ void renderCircles(const std::vector<Circle>& circles, std::vector<std::vector<s
 }
 
 // Funzione per salvare l'immagine in un file PPM
-void saveImageToFile(const std::vector<std::vector<std::vector<int>>>& image, int width, int height, int numCircles) {
-    // Creazione del nome del file dinamicamente
-    const std::string filename = "./images/" + std::to_string(numCircles) + "circles_" + std::to_string(width) + "Wx" + std::to_string(height) + "H.ppm";
+void saveImageToFile(const std::vector<std::vector<std::vector<int>>>& image, int width, int height, int numCircles, int numThreads) {
+    const std::string filename = "./images/" + std::to_string(numCircles) + "circles_" + std::to_string(width) + "Wx" + std::to_string(height) + "H_" + std::to_string(numThreads) + "threads.ppm";
 
     std::ofstream out(filename);
-    out << "P3\n" << width << " " << height << "\n255\n";  // Header del formato PPM
-
+    out << "P3\n" << width << " " << height << "\n255\n";
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
             out << image[i][j][0] << " "
@@ -113,29 +110,59 @@ std::vector<Circle> generateRandomCircles(const int numCircles, const int width,
     return circles;
 }
 
+// Funzione per salvare i risultati in un file CSV
+void saveResultsToCSV(const std::string& filename, const std::vector<std::tuple<int, int, double, double, double>>& results) {
+    std::ofstream out(filename);
+    out << "numCircles,numThreads,renderDuration,speedup,efficiency\n";
+    for (const auto& result : results) {
+        out << std::get<0>(result) << ","
+            << std::get<1>(result) << ","
+            << std::get<2>(result) << ","
+            << std::get<3>(result) << ","
+            << std::get<4>(result) << "\n";
+    }
+    out.close();
+}
+
 int main() {
     int width = 2000;
     int height = 2000;
-    int numCircles = 1000;
 
-    auto circles = generateRandomCircles(numCircles, width, height);
+    std::vector<int> numCirclesList = {500, 1000, 2000};
+    std::vector<int> numThreadsList = {1, 2, 4, 8, 16};
+    std::vector<std::tuple<int, int, double, double, double>> results;
 
-    for (int numThreads = 1; numThreads <= 16; numThreads *= 2) {
-        omp_set_num_threads(numThreads);
+    for (int numCircles : numCirclesList) {
+        auto circles = generateRandomCircles(numCircles, width, height);
+        double baseDuration = 0.0;
 
-        // Inizializzazione dell'immagine con uno sfondo bianco
-        std::vector<std::vector<std::vector<int>>> image(height, std::vector<std::vector<int>>(width, {255, 255, 255}));
+        for (int numThreads : numThreadsList) {
+            omp_set_num_threads(numThreads);
 
-        double render_start_time = omp_get_wtime();
-        renderCircles(circles, image, width, height);
-        double render_end_time = omp_get_wtime();
+            std::vector<std::vector<std::vector<int>>> image(height, std::vector<std::vector<int>>(width, {255, 255, 255}));
 
-        double render_duration = render_end_time - render_start_time;
-        std::cout << "Tempo di rendering con " << numThreads << " thread: " << render_duration << " secondi." << std::endl;
+            double render_start_time = omp_get_wtime();
+            renderCircles(circles, image, width, height);
+            double render_end_time = omp_get_wtime();
 
-        // Salva l'immagine su file
-        saveImageToFile(image, width, height, numCircles);
+            double renderDuration = render_end_time - render_start_time;
+
+            if (numThreads == 1) {
+                baseDuration = renderDuration;
+            }
+            double speedup = baseDuration / renderDuration;
+            double efficiency = speedup / numThreads;
+
+            std::cout << "Cerchi: " << numCircles << ", Thread: " << numThreads
+                      << ", Durata: " << renderDuration << "s, Speedup: " << speedup
+                      << ", Efficienza: " << efficiency << std::endl;
+
+            results.emplace_back(numCircles, numThreads, renderDuration, speedup, efficiency);
+
+            saveImageToFile(image, width, height, numCircles, numThreads);
+        }
     }
 
+    saveResultsToCSV("render_results.csv", results);
     return 0;
 }
