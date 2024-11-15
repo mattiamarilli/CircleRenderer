@@ -6,9 +6,13 @@ Makefile
 cmake_install.cmake
 CMakeUserPresets.json
 CMakePresets.json
-
-# Ignora tutte le directory di build
 cmake-build-*/
+
+# Logs
+/performancelog/*.txt
+
+#Images
+/images/circles.ppm
 
 # CLion specific
 .idea/
