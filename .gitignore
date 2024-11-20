@@ -8,11 +8,8 @@ CMakeUserPresets.json
 CMakePresets.json
 cmake-build-*/
 
-# Logs
-/performancelog/*.txt
-
-#Images
-/images/circles.ppm
+#Graph
+speedup_vs_threads.png
 
 # CLion specific
 .idea/
@@ -41,3 +38,8 @@ cmake-build-*/
 *.dylib
 *.dll
 *.exe
+
+# Python
+/myenv/
+
+/performancelog
