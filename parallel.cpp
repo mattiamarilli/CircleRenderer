@@ -6,7 +6,6 @@
 #include <omp.h>
 #include <string>
 #include <iomanip>
-#include <sstream>
 
 struct Circle {
     float x, y, z;
@@ -33,10 +32,11 @@ void renderCircles(const std::vector<Circle>& circles, std::vector<std::vector<s
     std::vector<Circle> sortedCircles = circles;
     std::sort(sortedCircles.begin(), sortedCircles.end(), compareByZ);
 
-    // Define the grid cell size (used to optimize circle intersection checks)
-    const int gridSize = 100;
+    // The grid size will be a fraction of the smallest image dimension (width or height)
+    const int gridSize = std::max(1, std::min(width, height) / 10);
 
-    // Create a 3D grid where each cell contains the circles that might intersect that cell
+
+    // Create a grid where each cell contains the circles that might intersect that cell
     // The grid divides the rendering area into smaller cells based on the grid size
     std::vector<std::vector<std::vector<Circle>>> grid(
         (height + gridSize - 1) / gridSize,
@@ -150,11 +150,25 @@ void logExecutionDetails(const std::string& filename, const std::vector<std::tup
     out.close();
 }
 
+// Function to log the performance results of the rendering into a CSV file
+void logExecutionDetailsCSV(const std::string& filename, const std::vector<std::tuple<int, int, double, double, double>>& results) {
+    std::ofstream out(filename);
+    out << "Circles,Threads,Render Duration (s),Speedup,Efficiency\n";
+    for (const auto& result : results) {
+        out << std::get<0>(result) << ","
+            << std::get<1>(result) << ","
+            << std::fixed << std::setprecision(4) << std::get<2>(result) << ","
+            << std::fixed << std::setprecision(2) << std::get<3>(result) << ","
+            << std::fixed << std::setprecision(2) << std::get<4>(result) << "\n";
+    }
+    out.close();
+}
+
 // Main function that sets up the experiment and measures performance
 int main() {
     int width = 2000;
     int height = 2000;
-    int numMeasurements = 1;
+    int numMeasurements = 5;
 
     std::vector<int> numCirclesList = {10, 100, 1000, 10000, 100000};
     std::vector<int> numThreadsList = {1, 2, 4, 8, 16};
@@ -184,6 +198,7 @@ int main() {
             if (numThreads == 1) {
                 baseDuration = avgRenderDuration;
             }
+
             double speedup = baseDuration / avgRenderDuration;
             double efficiency = speedup / numThreads;
 
@@ -196,13 +211,11 @@ int main() {
     }
 
     //Log
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-    std::tm tm = *std::localtime(&now_time);
-    std::ostringstream timestamp;
-    timestamp << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
-    std::string filePath = "./performancelog/performance_log_" + timestamp.str() + ".txt";
+    std::string filePath = "./performancelog/performance_log.txt";
     logExecutionDetails(filePath, results);
+
+    filePath = "./performancelog/performance_log.csv";
+    logExecutionDetailsCSV(filePath, results);
 
     return 0;
 }

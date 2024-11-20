@@ -26,8 +26,70 @@ bool isPointInCircle(int px, int py, const Circle& circle) {
     return (dx * dx + dy * dy) <= (circle.radius * circle.radius);
 }
 
+// Main rendering function for drawing the circles onto the image
+void renderCirclesGrid(const std::vector<Circle>& circles, std::vector<std::vector<std::vector<int>>>& image, int width, int height, int numThreads) {
+    // Create a copy of the circles and sort them by z-coordinate (in descending order)
+    // Circles with a higher z value will be rendered last (closer to the viewer)
+    std::vector<Circle> sortedCircles = circles;
+    std::sort(sortedCircles.begin(), sortedCircles.end(), compareByZ);
+
+    // The grid size will be a fraction of the smallest image dimension (width or height)
+    const int gridSize = std::max(1, std::min(width, height) / 10);
+
+    // Create a 3D grid where each cell contains the circles that might intersect that cell
+    // The grid divides the rendering area into smaller cells based on the grid size
+    std::vector<std::vector<std::vector<Circle>>> grid(
+        (height + gridSize - 1) / gridSize,
+        std::vector<std::vector<Circle>>((width + gridSize - 1) / gridSize)
+    );
+
+    // Populate the grid with circles by checking which cells they intersect
+    for (const auto& circle : sortedCircles) {
+        // Calculate the minimum and maximum grid cell indices that the circle intersects in both the X and Y directions
+        int minX = std::max(0, static_cast<int>((circle.x - circle.radius) / gridSize));
+        int maxX = std::min(static_cast<int>(grid[0].size()) - 1, static_cast<int>((circle.x + circle.radius) / gridSize));
+        int minY = std::max(0, static_cast<int>((circle.y - circle.radius) / gridSize));
+        int maxY = std::min(static_cast<int>(grid.size()) - 1, static_cast<int>((circle.y + circle.radius) / gridSize));
+
+        // Add the circle to all grid cells that it potentially intersects
+        for (int y = minY; y <= maxY; ++y) {
+            for (int x = minX; x <= maxX; ++x) {
+                grid[y][x].push_back(circle);
+            }
+        }
+    }
+
+    // Parallel rendering of the image
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            // Initial color for the pixel (white background)
+            int r = 255, g = 255, b = 255;
+
+            // Determine the grid cell coordinates for the current pixel (i, j)
+            int gridX = j / gridSize;
+            int gridY = i / gridSize;
+
+            // Check all circles that could potentially affect this pixel in the current grid cell
+            for (const auto& circle : grid[gridY][gridX]) {
+                if (isPointInCircle(j, i, circle)) {
+                    // Calculate the alpha blending for the circle color based on its transparency (a)
+                    float alpha = circle.a / 255.0f;
+                    r = (int)((1 - alpha) * r + alpha * circle.r);
+                    g = (int)((1 - alpha) * g + alpha * circle.g);
+                    b = (int)((1 - alpha) * b + alpha * circle.b);
+                }
+            }
+
+            // Assign the computed color to the image pixel (i, j)
+            image[i][j][0] = r;
+            image[i][j][1] = g;
+            image[i][j][2] = b;
+        }
+    }
+}
+
 // Function to render circles on an image and save it as a PPM file
-void renderCircles(const std::vector<Circle>& circles, int width, int height, int numCircles) {
+void renderCirclesNaive(const std::vector<Circle>& circles, int width, int height, int numCircles) {
     // Dynamically generate the filename based on the number of circles and image dimensions
     std::string filename = "./images/" + std::to_string(numCircles) + "circles_" + std::to_string(width) + "Wx" + std::to_string(height) + "H.ppm";
 
@@ -120,21 +182,15 @@ int main() {
     int height = 1000;
 
     // Define the number of circles to generate
-    int numCircles = 200;  // You can modify this number to test with different amounts of circles
+    int numCircles = 200;
 
     // Generate random circles
     auto circles = generateRandomCircles(numCircles, width, height);
 
-    // Measure the execution time of the rendering process
-    auto start = std::chrono::high_resolution_clock::now();
-
     // Render the circles and save the resulting image
-    renderCircles(circles, width, height, numCircles);
+    renderCirclesNaive(circles, width, height, numCircles);
 
-    // Measure the end time and compute the duration
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration = end - start;
-    std::cout << "Execution time for rendering " << numCircles << " circles: " << duration.count() << " seconds." << std::endl;
+    std::cout << "Execution time for rendering " << numCircles << " circles: " << std::endl;
 
     return 0;  // Return success
 }
